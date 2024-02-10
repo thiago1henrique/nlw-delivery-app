@@ -1,19 +1,40 @@
 import { Header } from "@/app/components/header";
-import { View, Text, FlatList } from "react-native";
-import { CATEGORIES } from "@/utils/data/products";
+import { View, Text, FlatList, SectionList } from "react-native";
+import { Link } from "expo-router"
+import { CATEGORIES, MENU, ProductProps } from "@/utils/data/products";
 import { CategoryButton } from "./components/category-button";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { Product } from "@/app/components/product";
+import { useCartStore } from "@/stores/cart-store";
+
+
 export default function Home() {
+	const cartStore = useCartStore()
+	const sectionListRef = useRef<SectionList<ProductProps>>(null)
 	
 	const [category, setCategory] = useState(CATEGORIES[0])
 
+	const cartQuantityItems = cartStore.products.reduce((total, product) => total + product.quantity, 0)
+
 	function handleCategorySelect(selectCategory: string) {
 		setCategory(selectCategory)
+
+		const sectionIndex = CATEGORIES.findIndex(
+			(category) => category === selectCategory
+		)
+
+		if(sectionListRef.current) {
+			sectionListRef.current.scrollToLocation({
+				animated: true,
+				sectionIndex,
+				itemIndex: 0,
+			})
+		}
 	}
 
 	return (
 		<View className="flex-1">
-			<Header title="Faça seu pedido" cardQuantityItems={9} />
+			<Header title="Faça seu pedido" cardQuantityItems={cartQuantityItems} />
 			<FlatList
 				data={CATEGORIES}
 				keyExtractor={(item) => item}
@@ -24,6 +45,21 @@ export default function Home() {
 				className="max-h-10 mt-5"
 				showsHorizontalScrollIndicator={false}
 				contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
+			/>
+
+			<SectionList
+				ref={sectionListRef}
+				sections={MENU}
+				keyExtractor={(item) => item.id}
+				stickySectionHeadersEnabled={false}
+				renderItem={({item}) => (
+					<Link href={`/product/${item.id}`} asChild><Product data={item}/></Link>
+				)}
+				renderSectionHeader={({ section: { title }}) => 
+				<Text className="text-xl text-white font-heading mt-8 mb-3">{title}</Text>}
+				className="flex-1 p-5"
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={{paddingBottom: 50}}
 			/>
 		</View>
 	);
